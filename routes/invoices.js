@@ -2,7 +2,7 @@ const express = require('express');
 const router = new express.Router();
 const ExpressError = require('../expressError')
 const db = require('../db');
-const { getAll, getOne, create, update, delete_ } = require('../dbQueries')
+const { getAll, getOne, delete_ } = require('../dbQueries')
 
 router.get('/', async (req, res, next) => {
     try{
@@ -45,11 +45,27 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
     try{
         const { amt } = req.body
-        const results = await db.query(`UPDATE invoices SET amt=$2
-        WHERE id=$1
-        RETURNING id, comp_code, amt, paid, add_date, paid_date`,
-        [req.params.id, amt]);
-        
+        let results;
+        const payRes = await db.query(`SELECT paid FROM invoices WHERE id=$1`,
+        [req.params.id]);
+
+        if (payRes.rows.length === 0) {
+            throw new ExpressError("Not found", 404);
+        }
+
+        if (!payRes.rows[0].paid) {
+            const date = new Date().toISOString().slice(0, 10)
+            results = await db.query(`UPDATE invoices SET 
+            amt=$2, paid=$3, paid_date=$4
+            WHERE id=$1
+            RETURNING id, comp_code, amt, paid, add_date, paid_date`,
+            [req.params.id, amt, true, date]);
+            
+        }
+        else {
+            results = await db.query(`SELECT * FROM invoices WHERE id=$1`,
+            [req.params.id]);
+        }
         return res.json({invoice: results.rows[0]})
     }
     catch(e){

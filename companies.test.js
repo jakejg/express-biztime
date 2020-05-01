@@ -7,15 +7,16 @@ let testCompany;
 beforeEach(async () => {
     const result = await db.query(`INSERT INTO companies 
     (code, name, description)
-    VALUES ('test_code', 'test', 'nothing') `)
+    VALUES ('test_code', 'test', 'nothing')
+    RETURNING code, name, description`)
     testCompany = result.rows[0]
 })
 
-afterEach(() => {
+afterEach(async () => {
     await db.query(`DELETE FROM companies`)
 })
 
-afterALL(async () => {
+afterAll(async () => {
     await db.end()
 })
 
@@ -23,42 +24,46 @@ describe("GET /companies", () => {
     test("Get a list of company codes and names", async () => {
         const res = await request(app).get('/companies');
         expect(res.statusCode).toBe(200)
-        expect(res.body).toEqual([testCompany])
+        expect(res.body).toEqual({companies: [{code: testCompany.code, name: testCompany.name}]})
     })
 })
 
-// describe("POST /companies", () => {
-//     test("Create a new company", async () => {
-//         const newItem = {name: "kale", price: 1.50}
-//         const res = await request(app)
-//             .post('/items')
-//             .send([newItem]);
-//         expect(res.statusCode).toBe(200);
-//         expect(res.body).toEqual({"added": [newItem]});
-//     })
-// })
 
-// describe("GET /items/:name", () => {
-//     test("Retrieve a single item", async () => {
-//         const res = await request(app).get('/items/bread');
-//         expect(res.statusCode).toBe(200)
-//         expect(res.body).toEqual(item)
-//     })
-// })
+describe("GET /companies/:code", () => {
+    test("Retrieve a single company", async () => {
+        const res = await request(app).get(`/companies/test_code`);
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toEqual({company: testCompany});
+    })
+})
 
-// describe("PATCH /items", () => {
-//     test("Update an item", async () => {
-//         const updated = {name: "wheat bread", price: 2.50}
-//         const res = await request(app).patch('/items/bread').send(updated);
-//         expect(res.statusCode).toBe(200)
-//         expect(res.body).toEqual({updated})
-//     })
-// })
+describe("POST /companies", () => {
+    test("Create a new company", async () => {
+        const newCompany = {code: "test_code2", name: "test2", description: "text_here"}
+        const res = await request(app)
+            .post(`/companies`)
+            .send(newCompany);
+        expect(res.statusCode).toBe(201);
+        expect(res.body).toEqual({company: newCompany});
+    })
+})
 
-// describe("DELETE /items", () => {
-//     test("Delete an item", async () => {
-//         const res = await request(app).delete('/items/bread');
-//         expect(res.statusCode).toBe(200)
-//         expect(res.body).toEqual({message:"Deleted"})
-//     })
-// })
+describe("PATCH /companies", () => {
+    test("Update a companies", async () => {
+        const company = {name: "new-name", description: "different"}
+        const res = await request(app)
+            .put(`/companies/test_code`)
+            .send(company);
+        company.code = testCompany.code;
+        expect(res.statusCode).toBe(200)
+        expect(res.body).toEqual({company})
+    })
+})
+
+describe("DELETE /company", () => {
+    test("Delete a company", async () => {
+        const res = await request(app).delete(`/companies/test_code`);
+        expect(res.statusCode).toBe(200)
+        expect(res.body).toEqual({message: `Deleted ${testCompany.code}`})
+    })
+})

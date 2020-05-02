@@ -16,6 +16,14 @@ router.get('/', async (req, res, next) => {
 router.get('/:code', async (req, res, next) => {
     try{
         const company = await getOne("companies", req.params.code, "code")
+        const industryRes = await db.query(`SELECT c.code, i.industry FROM companies AS c 
+        JOIN industries_companies ON c.code = industries_companies.comp_code 
+        JOIN industries AS i ON industries_companies.abrev = i.abrev
+        WHERE code=$1`, [req.params.code])
+
+        const industries = industryRes.rows.map(row => row.industry);
+        company.industries = industries;
+
         return res.json({company})
     }
     catch(e){

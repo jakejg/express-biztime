@@ -5,7 +5,7 @@ const { getAll, getOne, create, update, delete_ } = require('../dbQueries')
 
 router.get('/', async (req, res, next) => {
     try{
-        companiesArray = await getAll("companies", "code", "name")
+        const companiesArray = await getAll("companies", "code", "name")
         return res.json({companies: companiesArray})
     }
     catch(e){
@@ -23,7 +23,7 @@ router.get('/:code', async (req, res, next) => {
 
         const industries = industryRes.rows.map(row => row.industry);
         company.industries = industries;
-
+       
         return res.json({company})
     }
     catch(e){

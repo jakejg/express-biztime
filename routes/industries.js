@@ -7,16 +7,19 @@ const { getAll } = require('../dbQueries')
 
  router.get('/', async (req, res, next) => {
     try{
-        const industriesArray = await getAll("industries", "abrev", "industry")
         const comp_codeRes = await db.query(`SELECT i.abrev, i.industry, c.code FROM industries AS i 
         left JOIN industries_companies ON i.abrev = industries_companies.abrev
-        left JOIN companies AS c ON industries_companies.comp_code = c.code`)
-        for (let industry of industriesArray) {
-            industry.comp_code = [];
-            for (let row of comp_codeRes.rows){
-                if (industry.abrev == row.abrev){
-                    industry.comp_code.push(row.code);
-                }
+        JOIN companies AS c ON industries_companies.comp_code = c.code`)
+ 
+        const industriesArray = [];
+        for (let row of comp_codeRes.rows){
+            const industry = industriesArray.find(val => val.abrev === row.abrev)
+            if (industry) {
+                industry.code.push(row.code)
+            }
+            else {
+                row.code = [row.code]
+                industriesArray.push(row)
             }
         }
         return res.json({industries: industriesArray});
